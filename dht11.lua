@@ -1,18 +1,25 @@
 pin = 3
+m=0
 function getTemp()
 status,temp,humi,temp_decimial,humi_decimial = dht.read(pin)
 if( status == dht.OK ) then
   -- Float firmware using this example
-  print(     
-    string.format(
-      "DHT Temperature:%d.%02d;Humidity:%d.%02d\r\n",
-      temp,
-      temp_decimial,
-      humi,
-      humi_decimial
-    )
-  )
-
+  print(string.format("DHT Temperature:%d.%02d;Humidity:%d.%02d\r\n",temp,temp_decimial,humi,humi_decimial))
+  if (temp >25) then
+    print ("ALERT: Temperature is out of range")
+        if m == 1 then
+            conn=net.createConnection(net.TCP, 0)  
+            conn:on("receive", function(conn, payload) print(payload)  end) 
+            conn:connect(80,"50.116.34.97")  
+            conn:send("GET /publicapi/notify?apikey=a5da8d60ea9e0bff55d953e9bf89f5ed87da1da9fc6b3f6d&application=ESP8266&event=TEMP_ALERT&description=Temperature%20is%20more%20than%2025&priority=2\r\n HTTP/1.1\r\n") 
+            conn:send("Host: notifymyandroid.com\r\n")  
+            conn:send("Accept: */*\r\n") 
+            conn:send("User-Agent: Mozilla/4.0 (compatible; esp8266 Lua; Windows NT 5.1)\r\n") 
+            conn:send("\r\n")
+            m = 0
+        else m = 1
+        end    
+  end        
 elseif( status == dht.ERROR_CHECKSUM ) then
   print( "DHT Checksum error." );
 elseif( status == dht.ERROR_TIMEOUT ) then
@@ -20,7 +27,7 @@ elseif( status == dht.ERROR_TIMEOUT ) then
 end
 end
 
---- Get temp and send data to thingspeak.com
+--- Get temperature and humidity data and send data to thingspeak.com
 function sendData()
 getTemp()
 -- conection to thingspeak.com
